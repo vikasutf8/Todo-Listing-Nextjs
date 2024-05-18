@@ -1,118 +1,137 @@
-import Image from "next/image";
-import { Inter } from "next/font/google";
-
-const inter = Inter({ subsets: ["latin"] });
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { useAuth } from "../context/AuthContext";
+import Navbar from "../components/Navbar";
+import TodoList from "../components/TodoList";
+import { db } from "../firebase";
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 
 export default function Home() {
-  return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">pages/index.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const { user, loading } = useAuth();
+  const [showLoading, setShowLoading] = useState(true);
+  const [showMessage, setShowMessage] = useState(false);
+  const [todos, setTodos] = useState([]);
+  const [newTodo, setNewTodo] = useState("");
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLoading(false);
+      setShowMessage(true);
+    }, 2000); // Show loading animation for 2 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return;
+
+    const q = query(collection(db, "todos"), where("uid", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const todosArr = [];
+      snapshot.forEach((doc) => {
+        todosArr.push({ ...doc.data(), id: doc.id });
+      });
+      setTodos(todosArr);
+      setShowLoading(false); // Hide loading animation once todos are fetched
+    });
+
+    return () => unsubscribe();
+  }, [user, loading]);
+
+  const addTodo = async (e) => {
+    e.preventDefault();
+    if (!newTodo.trim()) return;
+    try {
+      await addDoc(collection(db, "todos"), {
+        text: newTodo,
+        completed: false,
+        uid: user.uid,
+      });
+      setNewTodo("");
+    } catch (error) {
+      console.error("Error adding todo:", error.message);
+    }
+  };
+
+  const toggleComplete = async (id) => {
+    try {
+      const todoRef = doc(db, "todos", id);
+      const todo = todos.find((todo) => todo.id === id);
+      await updateDoc(todoRef, { completed: !todo.completed });
+    } catch (error) {
+      console.error("Error toggling completion:", error.message);
+    }
+  };
+
+  const deleteTodo = async (id) => {
+    try {
+      await deleteDoc(doc(db, "todos", id));
+    } catch (error) {
+      console.error("Error deleting todo:", error.message);
+    }
+  };
+
+  if (showLoading || loading) {
+    // Show loading animation
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (!user && showMessage) {
+    // Show welcome message and login/signup buttons
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-4">Welcome to Todo App</h1>
+          <p className="text-xl">Please login or sign up</p>
+        </div>
+        <div>
+          <button
+            onClick={() => router.push("/login")}
+            className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            Login
+          </button>
+          <button
+            onClick={() => router.push("/signup")}
+            className="bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Sign Up
+          </button>
         </div>
       </div>
+    );
+  }
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+  if (!user) {
+    // Don't render anything until user state is resolved
+    return null;
+  }
+
+  // Render todo functionality after login
+  return (
+    <div>
+      <Navbar />
+      <div className="container mx-auto p-4">
+        <p>Welcome, {user.email}!</p>
+        <form onSubmit={addTodo} className="flex mb-4">
+          <input
+            type="text"
+            value={newTodo}
+            onChange={(e) => setNewTodo(e.target.value)}
+            className="flex-grow p-2 border rounded"
+            placeholder="Add a new task"
+          />
+          <button type="submit" className="ml-2 bg-blue-500 text-white px-4 py-2 rounded">
+            Add
+          </button>
+        </form>
+        <TodoList todos={todos} toggleComplete={toggleComplete} deleteTodo={deleteTodo} />
       </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
