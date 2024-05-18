@@ -27,8 +27,9 @@ To run this project locally, follow these steps:
 2. cd todo-app
 3. npm install
 4. npm run dev
-5. 5. Create .env.local file
-   ```Create a file named .env.local in the root directory of your project. Add your Firebase configuration variables to this file:
+5. Create .env.local file
+   ```bash
+   Create a file named .env.local in the root directory of your project. Add your Firebase configuration variables to this file:
 
    NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_API_KEY"
    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="YOUR_AUTH_DOMAIN"
