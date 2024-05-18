@@ -37,3 +37,8 @@ To run this project locally, follow these steps:
    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="YOUR_STORAGE_BUCKET"
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="YOUR_MESSAGING_SENDER_ID"
    NEXT_PUBLIC_FIREBASE_APP_ID="YOUR_APP_ID"
+
+##Deployment
+This project is deployed on Vercel. You can deploy your own version by connecting your repository to Vercel and following their deployment instructions.
+```bash
+https://todos-list-nextjs14.vercel.app/
