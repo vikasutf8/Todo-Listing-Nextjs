@@ -18,7 +18,7 @@ export default function Home() {
     const timer = setTimeout(() => {
       setShowLoading(false);
       setShowMessage(true);
-    }, 2000); // Show loading animation for 2 seconds
+    }, 500); 
     return () => clearTimeout(timer);
   }, []);
 
