@@ -34,7 +34,7 @@ export default function Signup() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-2xl mb-4">Signup</h1>
+      <h1 className="text-2xl mb-4">Sign Up</h1>
       <form onSubmit={handleSignup} className="flex flex-col">
         <input
           type="email"
@@ -51,7 +51,7 @@ export default function Signup() {
           className="mb-2 p-2 border rounded"
         />
         <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-          Signup
+          Sign Up
         </button>
       </form>
       <button
